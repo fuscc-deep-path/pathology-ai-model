@@ -20,6 +20,7 @@ from tqdm import tqdm
 from PIL import Image
 from torch.utils import data
 from torchvision import models, transforms
+from pathology_ai_model.utils import get_modelpath
 
 
 class TumorDetPatchReader(data.Dataset):
@@ -55,9 +56,9 @@ def hook_feature(module, input, output):
 
 
 def net_pred_extract_feats(loader, net, featpath=None, cls=2):
-    '''Network and image for prediction and extract each patch's feats,
+    """Network and image for prediction and extract each patch's feats,
        the npz file of tumor detcetion results and the several .csv files are in the same folder
-    '''
+    """
     if featpath is None:
         featpath = ''
 
@@ -100,28 +101,18 @@ def net_pred_extract_feats(loader, net, featpath=None, cls=2):
     return score, bin, namelist
 
 
-def get_modelpath(model_name):
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models', model_name)
-
-
 def start_model(datapath, feats_savepath):
     modelpath = get_modelpath('norm_model_epoch_105.pkl')
     # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    print('Loading model...')
     net = load_net(modelpath, numclasses=5)
 
-    if not os.path.exists(feats_savepath):
-        os.mkdir(feats_savepath)
+    sample_id = os.path.basename(datapath.strip('/'))
 
-    sample_id = os.path.basename(datapath)
-    subfolder = os.path.join(feats_savepath, sample_id)
-    if os.path.exists(subfolder):
-        print(sample_id, 'has been tumor detected')
-    else:
-        os.mkdir(subfolder)
-        dataset = TumorDetPatchReader(os.path.join(datapath, sample_id), format='png')
-        loader = data.DataLoader(dataset, batch_size=1, shuffle=False, drop_last=False, num_workers=8, pin_memory=True)
+    dataset = TumorDetPatchReader(datapath, format='png')
+    loader = data.DataLoader(dataset, batch_size=1, shuffle=False, drop_last=False, num_workers=8, pin_memory=True)
 
-        scores, bins, namelist = net_pred_extract_feats(loader, net, os.path.join(subfolder, 'feats.csv'), cls=5)
-        print(len(scores), '\t', len(bins), '\t', (namelist))
+    scores, bins, namelist = net_pred_extract_feats(loader, net, os.path.join(feats_savepath, 'feats.csv'), cls=5)
+    print(len(scores), '\t', len(bins), '\t', (namelist))
 
-        np.savez(os.path.join(subfolder, sample_id + '.npz'), score=scores, bin=bins, namelist=namelist)
+    np.savez(os.path.join(feats_savepath, sample_id + '.npz'), score=scores, bin=bins, namelist=namelist)

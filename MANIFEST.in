@@ -3,9 +3,12 @@ include CONTRIBUTING.rst
 include HISTORY.rst
 include LICENSE
 include README.rst
+include requirements.txt
 
 recursive-include tests *
+recursive-include pathology_ai_model *
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
+recursive-exclude * .DS_Store
 
 recursive-include docs *.rst conf.py Makefile make.bat *.jpg *.png *.gif
