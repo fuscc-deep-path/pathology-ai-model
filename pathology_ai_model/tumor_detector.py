@@ -55,24 +55,11 @@ def hook_feature(module, input, output):
     features_blobs[0] = output.data.cpu().numpy()
 
 
-def net_pred_extract_feats(loader, net, featpath=None, cls=2):
+def net_pred_extract_feats(loader, net, cls=2):
     """Network and image for prediction and extract each patch's feats,
        the npz file of tumor detcetion results and the several .csv files are in the same folder
     """
-    if featpath is None:
-        featpath = ''
-
-    f1 = open(featpath, 'w')
-    f2 = open(featpath.replace('feats.csv', 'names.csv'), 'w')
-    f3 = open(featpath.replace('feats.csv', 'scores.csv'), 'w')
-    f4 = open(featpath.replace('feats.csv', 'predictions.csv'), 'w')
-
     net._modules.get('avgpool').register_forward_hook(hook_feature)  # get feature maps
-
-    writer1 = csv.writer(f1)
-    writer_imgname = csv.writer(f2)
-    writer_scores = csv.writer(f3)
-    writer_preds = csv.writer(f4)
 
     score = np.empty([0, cls])
     bin = np.array([])
@@ -84,19 +71,9 @@ def net_pred_extract_feats(loader, net, featpath=None, cls=2):
             predProb = F.softmax(net(img), dim=1)
             predBina = torch.argmax(predProb, dim=1)
 
-            writer1.writerow(np.squeeze(features_blobs[0]))
-            writer_imgname.writerow(name)
-            writer_scores.writerow(predProb.cpu().numpy().squeeze())
-            writer_preds.writerow(predBina.cpu().numpy())
-
             bin = np.concatenate((bin, predBina.cpu().numpy()), axis=0)
             score = np.concatenate((score, predProb.cpu().numpy()), axis=0)
             namelist = np.concatenate((namelist, name), axis=0)
-
-    f1.close()
-    f2.close()
-    f3.close()
-    f4.close()
 
     return score, bin, namelist
 
@@ -107,12 +84,10 @@ def start_model(datapath, feats_savepath):
     print('Loading model...')
     net = load_net(modelpath, numclasses=5)
 
-    sample_id = os.path.basename(datapath.strip('/'))
-
     dataset = TumorDetPatchReader(datapath, format='png')
     loader = data.DataLoader(dataset, batch_size=1, shuffle=False, drop_last=False, num_workers=8, pin_memory=True)
 
-    scores, bins, namelist = net_pred_extract_feats(loader, net, os.path.join(feats_savepath, 'feats.csv'), cls=5)
+    scores, bins, namelist = net_pred_extract_feats(loader, net, cls=5)
     print(len(scores), '\t', len(bins), '\t', (namelist))
 
-    np.savez(os.path.join(feats_savepath, sample_id + '.npz'), score=scores, bin=bins, namelist=namelist)
+    np.savez(feats_savepath, score=scores, bin=bins, namelist=namelist)

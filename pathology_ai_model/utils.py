@@ -7,21 +7,22 @@ import torch.nn.functional as F
 from tqdm import tqdm
 
 
-def save_temp_excel_oneshop(namelist, scores, predictions, save_dir, nCls, PATCHorPATIENT, TRAINorVALorTEST):
+def save_results(namelist, scores, predictions, nCls, which_type='patch'):
+    """
+    which_type: patch, patient
+    """
     if nCls==2:
-        b = pd.DataFrame({"namelist_" + PATCHorPATIENT + '_' + TRAINorVALorTEST: namelist,
-                          "scores_" + PATCHorPATIENT + '_' + TRAINorVALorTEST: scores,
-                          "predictions_" + PATCHorPATIENT + '_' + TRAINorVALorTEST: predictions})
+        data_frame = pd.DataFrame({"namelist_" + which_type: namelist,
+                                   "scores_" + which_type: scores,
+                                   "predictions_" + which_type: predictions})
     elif nCls==4:
-        b = pd.DataFrame({"namelist_" + PATCHorPATIENT + '_' + TRAINorVALorTEST: namelist,
-                          "predictions_" + PATCHorPATIENT + '_' + TRAINorVALorTEST: predictions})
+        data_frame = pd.DataFrame({"namelist_" + which_type: namelist,
+                                   "predictions_" + which_type: predictions})
     elif nCls==1:
-        b = pd.DataFrame({"namelist_" + PATCHorPATIENT + '_' + TRAINorVALorTEST: namelist,
-                          "scores_" + PATCHorPATIENT + '_' + TRAINorVALorTEST: scores})
+        data_frame = pd.DataFrame({"namelist_" + which_type: namelist,
+                                   "scores_" + which_type: scores})
 
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
-    b.to_excel(os.path.join(save_dir, PATCHorPATIENT + '_' + TRAINorVALorTEST + '.xlsx'))
+    return data_frame
 
 
 def net_prediction_oneshop(dataloader, model, Cls):
