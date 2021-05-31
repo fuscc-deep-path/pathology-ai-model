@@ -1,4 +1,5 @@
 import os
+import json
 import numpy as np
 import pandas as pd
 import torch
@@ -7,22 +8,33 @@ import torch.nn.functional as F
 from tqdm import tqdm
 
 
-def save_results(namelist, scores, predictions, nCls, which_type='patch'):
+def save_results(namelist, scores, predictions, nCls):
     """
     which_type: patch, patient
     """
-    if nCls==2:
-        data_frame = pd.DataFrame({"namelist_" + which_type: namelist,
-                                   "scores_" + which_type: scores,
-                                   "predictions_" + which_type: predictions})
-    elif nCls==4:
-        data_frame = pd.DataFrame({"namelist_" + which_type: namelist,
-                                   "predictions_" + which_type: predictions})
-    elif nCls==1:
-        data_frame = pd.DataFrame({"namelist_" + which_type: namelist,
-                                   "scores_" + which_type: scores})
+    def to_dict_list(json_results):
+        keys = json_results.get("name").keys()
 
-    return data_frame
+        return [{
+            "name": json_results.get("name").get(key),
+            "score": json_results.get("score").get(key, None),
+            "prediction": json_results.get("prediction").get(key, None)
+        } for key in keys]
+
+    if nCls==2:
+        results = pd.DataFrame({"name": namelist,
+                                "score": scores,
+                                "prediction": predictions}).to_json()
+    elif nCls==4:
+        results = pd.DataFrame({"name": namelist,
+                                "score": {},
+                                "prediction": predictions}).to_json()
+    elif nCls==1:
+        results = pd.DataFrame({"name": namelist,
+                                "score": scores,
+                                "prediction": {}}).to_json()
+
+    return to_dict_list(json.loads(results))
 
 
 def net_prediction_oneshop(dataloader, model, Cls):

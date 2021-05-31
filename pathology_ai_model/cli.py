@@ -22,6 +22,9 @@ import click
 from pathology_ai_model.tumor_detector import start_model as start_detector_model
 from pathology_ai_model.sampling import start_sampling
 from pathology_ai_model.prediction import start_model as start_prediction_model
+from pathology_ai_model.slide2patch import run_slide2patch as start_slide2patch
+from pathology_ai_model.stain_norm import start_stain_norm
+from pathology_ai_model.heatmap import make_heatmap as start_heatmap
 
 @click.group()
 def cli():
@@ -34,7 +37,7 @@ def cli():
 @click.option('--feats-path', '-f', required=True,
               help="The file which to save features.")
 def detector(datapath, feats_path):
-    """Detect tumor type from image patch."""
+    """To detect tumor type from image patch."""
     start_detector_model(datapath, feats_path)
 
 @cli.command()
@@ -55,7 +58,7 @@ def detector(datapath, feats_path):
               help="How many patches (default: 250)?",
               default=250, type=int)
 def sampling(datapath, feats_file, sampling_file, seed, scores_cutoff, patch_num_base):
-    """Sampling several image patches."""
+    """To sample several image patches."""
     start_sampling(datapath, feats_file, sampling_file, seed=seed, scores_cutoff=scores_cutoff, patch_num_base=patch_num_base)
 
 
@@ -85,8 +88,50 @@ def sampling(datapath, feats_file, sampling_file, seed, scores_cutoff, patch_num
 @click.option('--batch-size', '-b', required=False,
               help="Batch size (default: 256)?", default=256, type=int)
 def prediction(datapath, sampling_file, root_dir, model_type, seed, gpu, net, num_classes, num_workers, batch_size):
-    """Prediction."""
+    """To predict with the specified model."""
     start_prediction_model(datapath, sampling_file=sampling_file, root_dir=root_dir, model_type=model_type, seed=seed, gpu=gpu, net=net, num_classes=num_classes, num_workers=num_workers, batch_size=batch_size)
+
+
+@cli.command()
+@click.option('--xmlpath', '-x', required=True, type=click.Path(exists=True, file_okay=True), help="The xml file for ROI.")
+@click.option('--output', '-o', required=True, help="The output directory for saving image patches.")
+def slide2patch(xmlpath, output):
+    """To convert slide to several patches."""
+    start_slide2patch(xmlpath, output)
+
+
+@cli.command()
+@click.option('--datapath', '-d', required=True, type=click.Path(exists=True, file_okay=True), help="The directory which contains non-normalized patches.")
+@click.option('--output', '-o', required=True, help="The output directory for saving normalized image patches.")
+def normalization(datapath, output):
+    """To normalize the image patches."""
+    start_stain_norm(datapath, output)
+
+
+@cli.command()
+@click.option('--datapath', '-d', required=True,
+              type=click.Path(exists=True, dir_okay=True),
+              help="The directory which saved normalized image patches.")
+@click.option('--feats-file', '-f', required=True,
+              help="The file which saved feats (npz file).",
+              type=click.Path(exists=True, file_okay=True))
+@click.option('--sampling-file', '-f', required=True,
+              type=click.Path(exists=True, file_okay=True),
+              help="The file which saved sampling images.")
+@click.option('--root-dir', '-r', required=True,
+              type=click.Path(exists=True, dir_okay=True),
+              help="The root directory which to save result files.")
+@click.option('--model-type', '-m', required=False, 
+              help="The model type for prediction (default: PIK3CA_Mutation).",
+              default='PIK3CA_Mutation', type=click.Choice(['PIK3CA_Mutation', 'BLIS', 'IM', 'LAR',  'MES']))
+@click.option('--gpu', '-g', required=False,
+              help="Which gpu(s) (default: '0')?", default='0')
+@click.option('--num-classes', '-n', required=False,
+              help="How many classes (default: 2)?", default=2, type=int)
+def heatmap(datapath, feats_file, sampling_file, root_dir, model_type, gpu, num_classes):
+    """To make a heatmap for the selected image patches."""
+    start_heatmap(datapath, featsfile=feats_file, sampling_file=sampling_file, root_dir=root_dir, model_type=model_type, gpu=gpu, num_classes=num_classes)
+
 
 
 main = click.CommandCollection(sources=[cli])

@@ -1,4 +1,5 @@
 import os
+import json
 import numpy as np
 import random
 import torch
@@ -52,16 +53,26 @@ def start_model(datapath, sampling_file, root_dir, model_type, seed=2020, gpu="0
     # Patch Output: patch.json / patch.npz
     scores_patch, predictions_patch, namelist_patch = net_prediction_oneshop(testloader, net, num_classes)
 
-    results = save_results(namelist_patch, scores_patch[:, 1], predictions_patch, num_classes, 'patch')
-    results.to_json(os.path.join(root_dir, model_type, 'patch.json'))
+    patch_results = save_results(namelist_patch, scores_patch[:, 1], predictions_patch, num_classes)
+    with open(os.path.join(root_dir, model_type, 'patch.json'), 'w') as f:
+        json.dump(patch_results, f)
 
     savename_patch = os.path.join(root_dir, model_type, 'patch.npz')
     np.savez(savename_patch, key_score=scores_patch, key_binpred=predictions_patch, key_namelist=namelist_patch)
 
     # Patient Output: patient.json / patient.npz
     scores_patient, predictions_patient, namelist_patient = patient_res_m3_oneshop(scores_patch, namelist_patch, num_classes)
-    results = save_results(namelist_patient, scores_patient[:, 1], predictions_patient, num_classes, 'patient')
-    results.to_json(os.path.join(root_dir, model_type, 'patient.json'))
+    patient_results = save_results(namelist_patient, scores_patient[:, 1], predictions_patient, num_classes)
+    with open(os.path.join(root_dir, model_type, 'patient.json'), 'w') as f:
+        json.dump(patient_results[0], f)
     
-    savename_patient = os.path.join(root_dir, model_type, 'patch.npz')
+    savename_patient = os.path.join(root_dir, model_type, 'patient.npz')
     np.savez(savename_patient,  key_score=scores_patient, key_binpred=predictions_patient, key_namelist=namelist_patient)
+
+    with open(os.path.join(root_dir, model_type, 'prediction.json'), 'w') as f:
+        results = {
+          "model": model_type,
+          "patient": patient_results[0],
+          "patch": patch_results
+        }
+        json.dump(results, f)

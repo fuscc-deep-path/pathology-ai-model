@@ -29,3 +29,6 @@ tqdm==4.60.0
 pandas==1.2.3
 cython
 openpyxl
+openslide-python
+spams==2.6.2.5
+pyvips==2.1.14
