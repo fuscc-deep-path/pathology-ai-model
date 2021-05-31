@@ -25,25 +25,16 @@ def start_stain_norm(datapath, output, stain_norm = True, nstains = 2, lamb = 0.
 
     assert os.path.exists(reference_filepath), "Target file does not exist"
 
-    folders = os.listdir(datapath)
+    img_format = "*.png"
+    filenames = sorted(glob.glob(os.path.join(datapath, img_format)))
+    assert len(filenames) != 0, "No source files found"
 
-    for input_direc in folders:
-        input_direc = os.path.join(datapath, input_direc)
-        print(input_direc)
+    if not stain_norm:
+        pass
+    else:
+        if not os.path.exists(output):
+            os.makedirs(output)
 
-        img_format = "*.png"
-        filenames = sorted(glob.glob(os.path.join(input_direc, img_format)))
-        assert len(filenames) != 0, "No source files found"
-
-        if not stain_norm:
-            pass
-
-        else:
-            if not os.path.exists(output):
-                os.makedirs(output)
-            else:
-                continue
-
-            filenames = [reference_filepath] + filenames
-            norm = ColorNorm(nstains, lamb, img_level=0)
-            norm.run_batch_colornorm(filenames, output)
+        filenames = [reference_filepath] + filenames
+        norm = ColorNorm(nstains, lamb, img_level=0)
+        norm.run_batch_colornorm(filenames, output)

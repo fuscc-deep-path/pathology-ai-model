@@ -32,3 +32,5 @@ openpyxl
 openslide-python
 spams==2.6.2.5
 pyvips==2.1.14
+xmltodict==0.12.0
+scikit-image==0.18.1
