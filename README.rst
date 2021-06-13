@@ -2,13 +2,7 @@
 pathology-ai-model
 ==================
 
-
-
-
-
-
 AI models for pathology images.
-
 
 
 Features

@@ -45,7 +45,7 @@ setup(
     long_description=readme + '\n\n' + history,
     include_package_data=True,
     keywords='pathology_ai_model',
-    name='pathology_ai_model',
+    name='pathology-ai-model',
     packages=find_packages(include=['pathology_ai_model']),
     setup_requires=setup_requirements,
     test_suite='tests',
