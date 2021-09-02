@@ -115,7 +115,7 @@ def normalization(datapath, output):
 @click.option('--feats-file', '-f', required=True,
               help="The file which saved feats (npz file).",
               type=click.Path(exists=True, file_okay=True))
-@click.option('--sampling-file', '-f', required=True,
+@click.option('--sampling-file', '-s', required=True,
               type=click.Path(exists=True, file_okay=True),
               help="The file which saved sampling images.")
 @click.option('--root-dir', '-r', required=True,

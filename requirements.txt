@@ -23,8 +23,6 @@ python-dateutil==2.8.1
 scikit-learn==0.24.1
 scipy==1.6.2
 six==1.15.0
-torch==1.8.1
-torchvision==0.9.1
 tqdm==4.60.0
 pandas==1.2.3
 cython
@@ -34,3 +32,8 @@ spams==2.6.2.5
 pyvips==2.1.14
 xmltodict==0.12.0
 scikit-image==0.18.1
+
+-f https://download.pytorch.org/whl/torch_stable.html
+torch==1.9.0+cu111
+torchvision==0.10.0+cu111
+torchaudio==0.9.0
