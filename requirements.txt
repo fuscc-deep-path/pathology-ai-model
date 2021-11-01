@@ -33,6 +33,6 @@ pyvips==2.1.14
 xmltodict==0.12.0
 scikit-image==0.18.1
 
-torch==1.9.0+cu111
-torchvision==0.10.0+cu111
-torchaudio==0.9.0
+# torch==1.9.0+cu111
+# torchvision==0.10.0+cu111
+# torchaudio==0.9.0

@@ -6,7 +6,7 @@
 from setuptools import setup, find_packages
 from pathology_ai_model import __version__
 
-with open('README.rst') as readme_file:
+with open('README.md') as readme_file:
     readme = readme_file.read()
 
 with open('HISTORY.rst') as history_file:
