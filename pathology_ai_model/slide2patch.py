@@ -213,13 +213,12 @@ def func_wsi_tiling_v3_box(slide_filepath, line_color_value, def_size, save_leve
         pos_start = (np.amin(p,1) / fact + 0.5).astype(int)
         pos_len = (np.amax(p,1) / fact + 0.5).astype(int) - pos_start
 
-        print("Postion: ", p, pos_start, pos_len, fact)
+        print("Postion: ", p, pos_start, pos_len, fact, scale, def_size)
 
         low_m_roi = read_region(pointer, pos_start[0], pos_start[1], pos_len[0], pos_len[1] + 1, down_level)
         # print(low_m_roi[:,:,0:3])
         tissue_mask = filter_background(low_m_roi[:,:,0:3])
         # tissue_mask = low_m_roi[:,:,0:3]
-        print(pos_start, fact, scale, def_size)
 
         ratio = int(def_size / fact)
         step_ratio = int(step / fact)
@@ -228,13 +227,13 @@ def func_wsi_tiling_v3_box(slide_filepath, line_color_value, def_size, save_leve
             for j in range(0, tissue_mask.shape[1] - ratio + 1, step_ratio):
                 print("Test:", tissue_mask.shape[0] - ratio + 1, tissue_mask.shape[1] - ratio + 1)
                 print("Index:", i + ratio, j + ratio)
-                print("Pos: ", pos_start[0] + j + 1, pos_start[1] + i, fact, scale)
+                print("Pos: ", pos_start[0] + j, pos_start[1] + i, fact, scale)
                 print("Scale: ", def_size * scale, save_level)
 
                 region = tissue_mask[i: i + ratio, j: j + ratio]
 
                 if len(region) != 0 and sum(sum(region)) > (ratio * ratio) * dropR:
-                    patch = read_region(pointer, (pos_start[0] + j + 1) * fact * scale, (pos_start[1] + i) * fact * scale,
+                    patch = read_region(pointer, (pos_start[0] + j) * fact * scale, (pos_start[1] + i) * fact * scale,
                                         def_size * scale, def_size * scale, save_level)
                     img = Image.fromarray(patch)
                     # img = img.resize((int(patch.shape[0] * 0.5), int(patch.shape[1] * 0.5)))
@@ -274,4 +273,4 @@ if __name__ == '__main__':
     # run_slide2patch('/Users/choppy/Downloads/FUSCCTNBC/FUSCCTNBC001.xml', '/Users/choppy/Downloads/FUSCCTNBC/FUSCCTNBC001_files/')
     # run_slide2patch("/Users/choppy/Downloads/test_slide/slides/TCGA-A2-A0ST-01Z-00-DX1.xml", '/Users/choppy/Downloads/test_slide/slides/TCGA-A2-A0ST-01Z-00-DX1_files/')
     # run_slide2patch("/Users/choppy/Downloads/test_slide/slides/TEST_SLIDE_001.xml", "/Users/choppy/Downloads/test_slide/slides/TEST_SLIDE_001_files")
-    run_slide2patch("/Users/choppy/Downloads/test_slide/slides/FUSCCTNBC488.xml", "/Users/choppy/Downloads/test_slide/slides/TEST_SLIDE_001_files")
+    run_slide2patch("/Users/choppy/Downloads/test_slide/slides/FUSCCTNBC486.xml", "/Users/choppy/Downloads/test_slide/slides/FUSCCTNBC486_files")
