@@ -1,5 +1,7 @@
 # Pathology AI Model
 
+[DeepPath Repo](https://github.com/fuscc-deep-path)
+
 ## Installation
 
 ```bash
