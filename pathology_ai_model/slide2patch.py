@@ -1,4 +1,5 @@
 import os
+import sys
 import openslide
 import numpy as np
 import xmltodict
@@ -187,10 +188,13 @@ def func_wsi_tiling_v3_box(slide_filepath, line_color_value, def_size, save_leve
         down_level = 7  # sampling downingLevel is 7 (2^7=128) in case of Out Of Memory
         fact = 2 ** down_level  # svs is resampling from ndpi due to big size, so svs is 4^ ndpi is 2^
         xmlpath = slide_filepath.replace("ndpi", "xml")
-    else:
+    elif slide_filepath.endswith('svs'):
         down_level = 3  # sampling downingLevel is 5 (2^5=32) in case of Out Of Memory
         fact = 4 ** down_level  # svs is resampling from ndpi due to big size, so svs is 4^ ndpi is 2^
         xmlpath = slide_filepath.replace("svs", "xml")
+    else:
+        print("Cannot support the file format: %s" % slide_filepath)
+        sys.exit(1)
 
     color, annotation_info = get_annotation_multicolor_xml(xmlpath)
     if line_color_value not in color:
@@ -204,8 +208,12 @@ def func_wsi_tiling_v3_box(slide_filepath, line_color_value, def_size, save_leve
     for idx in range(0, position.shape[0] - 1, 1):
         print('Now is ROI %s' % (idx + 1))
         p = [position[0], position[1]]
-        pos_start = (np.amin(p,1) / fact).astype(int)
-        pos_len = (np.amax(p,1) / fact).astype(int) - pos_start
+
+        # Python int will cause truncation instead of rounding.
+        pos_start = (np.amin(p,1) / fact + 0.5).astype(int)
+        pos_len = (np.amax(p,1) / fact + 0.5).astype(int) - pos_start
+
+        print("Postion: ", p, pos_start, pos_len, fact)
 
         low_m_roi = read_region(pointer, pos_start[0], pos_start[1], pos_len[0], pos_len[1] + 1, down_level)
         # print(low_m_roi[:,:,0:3])
@@ -251,6 +259,10 @@ def run_slide2patch(xml_filepath, savepath):
         casename = filename + '.svs'
         slide_filepath = os.path.join(dirname, casename)
 
+        if not os.path.exists(slide_filepath):
+            print("Cannot find the slide file: %s" % slide_filepath)
+            sys.exit(1)
+
     if not os.path.exists(savepath):
         os.makedirs(savepath)
 
@@ -261,4 +273,5 @@ def run_slide2patch(xml_filepath, savepath):
 if __name__ == '__main__':
     # run_slide2patch('/Users/choppy/Downloads/FUSCCTNBC/FUSCCTNBC001.xml', '/Users/choppy/Downloads/FUSCCTNBC/FUSCCTNBC001_files/')
     # run_slide2patch("/Users/choppy/Downloads/test_slide/slides/TCGA-A2-A0ST-01Z-00-DX1.xml", '/Users/choppy/Downloads/test_slide/slides/TCGA-A2-A0ST-01Z-00-DX1_files/')
-    run_slide2patch("/Users/choppy/Downloads/test_slide/slides/TEST_SLIDE_001.xml", "/Users/choppy/Downloads/test_slide/slides/TEST_SLIDE_001_files")
+    # run_slide2patch("/Users/choppy/Downloads/test_slide/slides/TEST_SLIDE_001.xml", "/Users/choppy/Downloads/test_slide/slides/TEST_SLIDE_001_files")
+    run_slide2patch("/Users/choppy/Downloads/test_slide/slides/FUSCCTNBC488.xml", "/Users/choppy/Downloads/test_slide/slides/TEST_SLIDE_001_files")
