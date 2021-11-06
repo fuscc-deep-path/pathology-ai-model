@@ -191,7 +191,11 @@ def func_wsi_tiling_v3_box(slide_filepath, line_color_value, def_size, save_leve
     elif slide_filepath.endswith('svs'):
         down_level = 3  # sampling downingLevel is 5 (2^5=32) in case of Out Of Memory
         fact = 4 ** down_level  # svs is resampling from ndpi due to big size, so svs is 4^ ndpi is 2^
-        xmlpath = slide_filepath.replace("svs", "xml")
+        xmlpath = slide_filepath.replace('svs', 'xml')
+    elif slide_filepath.endswith('mrxs'):
+        down_level = 7
+        fact = 2 ** down_level
+        xmlpath = slide_filepath.replace('mrxs', 'xml')
     else:
         print("Cannot support the file format: %s" % slide_filepath)
         sys.exit(1)
@@ -251,16 +255,16 @@ def run_slide2patch(xml_filepath, savepath):
     line_color_value = 65280
 
     dirname, filename, ext = split_filepath(xml_filepath)
-    casename = filename + '.ndpi'
-    slide_filepath = os.path.join(dirname, casename)
+    casenames = [filename + extension 
+                    for extension in ['.ndpi', '.svs', '.mrxs'] 
+                        if os.path.exists(os.path.join(dirname, filename + extension))]
+    print("Case names: %s; Filename: %s" % (casenames, filename))
 
-    if not os.path.exists(slide_filepath):
-        casename = filename + '.svs'
-        slide_filepath = os.path.join(dirname, casename)
-
-        if not os.path.exists(slide_filepath):
-            print("Cannot find the slide file: %s" % slide_filepath)
-            sys.exit(1)
+    if len(casenames) == 1:
+        slide_filepath = os.path.join(dirname, casenames[0])
+    else:
+        print("Cannot find the slide file with the following extension(ndpi/svs/mrxs).")
+        sys.exit(1)
 
     if not os.path.exists(savepath):
         os.makedirs(savepath)
@@ -273,4 +277,5 @@ if __name__ == '__main__':
     # run_slide2patch('/Users/choppy/Downloads/FUSCCTNBC/FUSCCTNBC001.xml', '/Users/choppy/Downloads/FUSCCTNBC/FUSCCTNBC001_files/')
     # run_slide2patch("/Users/choppy/Downloads/test_slide/slides/TCGA-A2-A0ST-01Z-00-DX1.xml", '/Users/choppy/Downloads/test_slide/slides/TCGA-A2-A0ST-01Z-00-DX1_files/')
     # run_slide2patch("/Users/choppy/Downloads/test_slide/slides/TEST_SLIDE_001.xml", "/Users/choppy/Downloads/test_slide/slides/TEST_SLIDE_001_files")
-    run_slide2patch("/Users/choppy/Downloads/test_slide/slides/FUSCCTNBC486.xml", "/Users/choppy/Downloads/test_slide/slides/FUSCCTNBC486_files")
+    # run_slide2patch("/Users/choppy/Downloads/test_slide/slides/FUSCCTNBC486.xml", "/Users/choppy/Downloads/test_slide/slides/FUSCCTNBC486_files")
+    run_slide2patch("/Users/choppy/Downloads/test_slide/slides/2019-27411001.xml", "/Users/choppy/Downloads/test_slide/patches/2019-27411001_files_2*7")
