@@ -3,6 +3,7 @@ import sys
 import openslide
 import numpy as np
 import xmltodict
+from pprint import pprint
 from PIL import Image
 import collections
 import scipy as sp
@@ -70,31 +71,31 @@ def filter_background(rgb_img):
     level = filters.threshold_otsu(gray)
 
     bw = imbinarize(gray, level)
-    print("Running imbinarize...")
+    # print("Running imbinarize...")
     # Same with matlab -- dividing line --
 
     # imfill
     bw = imfill(invert(bw))
-    print("Running imfill...")
+    # print("Running imfill...")
     # np.savetxt("/Users/choppy/Downloads/python_res_imfill.csv", bw, fmt='%.2f', delimiter="\t")
 
     # disk --> imerode
     bw = imerode(bw, 3)
-    print("Running imerode...")
+    # print("Running imerode...")
     # np.savetxt("/Users/choppy/Downloads/python_res_imerode.csv", bw, fmt='%.2f', delimiter="\t")
 
     # disk --> imdilate
     bw = imdilate(bw, 5)
-    print("Running imdilate...")
+    # print("Running imdilate...")
     # np.savetxt("/Users/choppy/Downloads/python_res_imdilate.csv", bw, fmt='%.2f', delimiter="\t")
 
     # imfill
     bw = imfill(bw)
-    print("Running imfill...")
+    # print("Running imfill...")
 
     # bwareaopen
     bw = bwareaopen(bw, radius * radius, 8)
-    print("Running bwareaopen...")
+    # print("Running bwareaopen...")
 
     # np.savetxt("/Users/choppy/Downloads/python_res_bwareaopen.csv", bw, fmt='%.2f', delimiter="\t")
 
@@ -158,9 +159,11 @@ def get_annotation_multicolor_xml(xmlpath):
             })
 
             init = pos
-            print('Num of ROI: %s, linecolor is: %s' % (ridx + 1, linecolor))
         
         color.append(linecolor)
+
+    print("Color: %s;\nAnnotation Information: " % color)
+    pprint(annotation_info)
     return color, annotation_info
 
 def find_index(lst, key, value):
@@ -170,8 +173,6 @@ def find_index(lst, key, value):
     return -1
 
 def read_region(pointer, x, y, width, height, down_level):
-    # print('Read Region: %s, %s, %s, %s, %s' % (x, y, width, height, down_level))
-    print('Read Region: ', pointer.level_downsamples, pointer.level_dimensions)
     downsampling_factor = int(pointer.level_downsamples[down_level])
     x = int(x * downsampling_factor)
     y = int(y * downsampling_factor)
@@ -179,26 +180,25 @@ def read_region(pointer, x, y, width, height, down_level):
     image = pointer.read_region((x, y), down_level, (int(width), int(height)))
     return np.array(image)
 
-def func_wsi_tiling_v3_box(slide_filepath, line_color_value, def_size, save_level, step, dropR, savepath):
-    format = '.png'
+def save_img(img, savepath, filename):
+    filepath = os.path.join(savepath, filename)
+    img = Image.fromarray(img)
+    img.save(filepath)
+
+def get_xmlpath(slide_filepath):
+    filename, file_extension = os.path.splitext(slide_filepath)
+    xmlpath = slide_filepath.replace(file_extension, ".xml")
+    return xmlpath
+
+def func_wsi_tiling_v3_box(slide_filepath, line_color_value, def_size, save_level, step, dropR, savepath,
+                           down_level=7, fact=128, format='png'):
     scale = 1 / (2 ** save_level)
     pointer = openslide.OpenSlide(slide_filepath)
     _, id, _ = split_filepath(slide_filepath)
-    if slide_filepath.endswith('ndpi'):
-        down_level = 7  # sampling downingLevel is 7 (2^7=128) in case of Out Of Memory
-        fact = 2 ** down_level  # svs is resampling from ndpi due to big size, so svs is 4^ ndpi is 2^
-        xmlpath = slide_filepath.replace("ndpi", "xml")
-    elif slide_filepath.endswith('svs'):
-        down_level = 3  # sampling downingLevel is 5 (2^5=32) in case of Out Of Memory
-        fact = 4 ** down_level  # svs is resampling from ndpi due to big size, so svs is 4^ ndpi is 2^
-        xmlpath = slide_filepath.replace('svs', 'xml')
-    elif slide_filepath.endswith('mrxs'):
-        down_level = 7
-        fact = 2 ** down_level
-        xmlpath = slide_filepath.replace('mrxs', 'xml')
-    else:
-        print("Cannot support the file format: %s" % slide_filepath)
-        sys.exit(1)
+    xmlpath = get_xmlpath(slide_filepath)
+
+    print('The level of downsamples: ', pointer.level_downsamples)
+    print('The level of dimensions: ', pointer.level_dimensions)
 
     color, annotation_info = get_annotation_multicolor_xml(xmlpath)
     if line_color_value not in color:
@@ -210,44 +210,52 @@ def func_wsi_tiling_v3_box(slide_filepath, line_color_value, def_size, save_leve
     position = np.array([annotation_info[index].get('X'), annotation_info[index].get('Y')])
 
     for idx in range(0, position.shape[0] - 1, 1):
-        print('Now is ROI %s' % (idx + 1))
+        print('\n>>> Now is ROI %s' % (idx + 1))
         p = [position[0], position[1]]
 
         # Python int will cause truncation instead of rounding.
         pos_start = (np.amin(p,1) / fact + 0.5).astype(int)
         pos_len = (np.amax(p,1) / fact + 0.5).astype(int) - pos_start
 
-        print("Postion: ", p, pos_start, pos_len, fact, scale, def_size)
+        print("Position: ", pos_start, pos_len)
 
         low_m_roi = read_region(pointer, pos_start[0], pos_start[1], pos_len[0], pos_len[1] + 1, down_level)
-        # print(low_m_roi[:,:,0:3])
+
         tissue_mask = filter_background(low_m_roi[:,:,0:3])
-        # tissue_mask = low_m_roi[:,:,0:3]
+        save_img(low_m_roi[:,:,0:3], os.path.dirname(savepath), "tissue_mask_%s.%s" % (idx, format))
+        save_img(tissue_mask, os.path.dirname(savepath), "tissue_mask_filter_background_%s.%s" % (idx, format))
 
         ratio = int(def_size / fact)
         step_ratio = int(step / fact)
-        # print(step_ratio, tissue_mask.shape[0] - ratio + 1, tissue_mask.shape[1] - ratio + 1)
+        print("Def Size: %s; Save Level: %s; Step: %s; DropR: %s;" % (def_size, save_level, step, dropR))
+        print("Tissue Mask: %s, %s;" % (tissue_mask.shape[0], tissue_mask.shape[1]))
+        print("Ratio: %s; \nStep Ratio: %s;" % (ratio, step_ratio))
+
         for i in range(0, tissue_mask.shape[0] - ratio + 1, step_ratio):
             for j in range(0, tissue_mask.shape[1] - ratio + 1, step_ratio):
-                print("Test:", tissue_mask.shape[0] - ratio + 1, tissue_mask.shape[1] - ratio + 1)
-                print("Index:", i + ratio, j + ratio)
-                print("Pos: ", pos_start[0] + j, pos_start[1] + i, fact, scale)
-                print("Scale: ", def_size * scale, save_level)
-
                 region = tissue_mask[i: i + ratio, j: j + ratio]
 
-                if len(region) != 0 and sum(sum(region)) > (ratio * ratio) * dropR:
+                region_count = sum(sum(region))
+
+                if len(region) != 0 and region_count > (ratio * ratio) * dropR:
                     patch = read_region(pointer, (pos_start[0] + j) * fact * scale, (pos_start[1] + i) * fact * scale,
                                         def_size * scale, def_size * scale, save_level)
-                    img = Image.fromarray(patch)
-                    # img = img.resize((int(patch.shape[0] * 0.5), int(patch.shape[1] * 0.5)))
-                    filename = '%s_%s_%s_%s%s' % (id, i + 1, j + 1, idx + 1, format)
-                    img.save('%s/%s' % (savepath, filename))
-                    print(filename)
+                    filename = '%s_%s_%s_%s.%s' % (id, i + 1, j + 1, idx + 1, format)
+                    save_img(patch, savepath, filename)
+                # TODO: the whole image is white
+                #     if sum(sum(sum(patch))) != 0:
+                #         save_img(patch, savepath, filename)
+                #         print("Save Region as %s;" % filename)
+                #     else:
+                #         print("Warning: skip it, all pixels are white.")
+                # else:
+                #     # print("Invalid: %s, %s, %s" % (region_count, (ratio * ratio) * dropR, region))
+                #     # filename = 'invalid_%s_%s_%s_%s.%s' % (id, i + 1, j + 1, idx + 1, format)
+                #     # save_img(region, savepath, filename)
+                #     print("Region is smaller than %s;" % region_count)
     pointer.close()
 
 def run_slide2patch(xml_filepath, savepath):
-    print("Functions loading success...")
     def_hw_size = 512
     save_level = 1  # 0, 1, 2, 3
     step = 512
@@ -258,7 +266,7 @@ def run_slide2patch(xml_filepath, savepath):
     casenames = [filename + extension 
                     for extension in ['.ndpi', '.svs', '.mrxs'] 
                         if os.path.exists(os.path.join(dirname, filename + extension))]
-    print("Case names: %s; Filename: %s" % (casenames, filename))
+    print("Case names: %s;\nFilename: %s;" % (casenames, filename))
 
     if len(casenames) == 1:
         slide_filepath = os.path.join(dirname, casenames[0])
@@ -269,7 +277,21 @@ def run_slide2patch(xml_filepath, savepath):
     if not os.path.exists(savepath):
         os.makedirs(savepath)
 
-    func_wsi_tiling_v3_box(slide_filepath, line_color_value, def_hw_size, save_level, step, keepr, savepath)
+    if slide_filepath.endswith('ndpi'):
+        down_level = 7  # sampling downingLevel is 7 (2^7=128) in case of Out Of Memory
+        fact = 2 ** down_level  # svs is resampling from ndpi due to big size, so svs is 4^ ndpi is 2^
+    elif slide_filepath.endswith('svs'):
+        down_level = 3  # sampling downingLevel is 5 (2^5=32) in case of Out Of Memory
+        fact = 4 ** down_level  # svs is resampling from ndpi due to big size, so svs is 4^ ndpi is 2^
+    elif slide_filepath.endswith('mrxs'):
+        down_level = 7
+        fact = 2 ** down_level
+    else:
+        print("Cannot support the file format: %s" % slide_filepath)
+        sys.exit(1)
+
+    func_wsi_tiling_v3_box(slide_filepath, line_color_value, def_hw_size, save_level, step, keepr, savepath,
+                           down_level=down_level, fact=fact)
 
     print("Finish tiling...")
 
@@ -278,4 +300,4 @@ if __name__ == '__main__':
     # run_slide2patch("/Users/choppy/Downloads/test_slide/slides/TCGA-A2-A0ST-01Z-00-DX1.xml", '/Users/choppy/Downloads/test_slide/slides/TCGA-A2-A0ST-01Z-00-DX1_files/')
     # run_slide2patch("/Users/choppy/Downloads/test_slide/slides/TEST_SLIDE_001.xml", "/Users/choppy/Downloads/test_slide/slides/TEST_SLIDE_001_files")
     # run_slide2patch("/Users/choppy/Downloads/test_slide/slides/FUSCCTNBC486.xml", "/Users/choppy/Downloads/test_slide/slides/FUSCCTNBC486_files")
-    run_slide2patch("/Users/choppy/Downloads/test_slide/slides/2019-27411001.xml", "/Users/choppy/Downloads/test_slide/patches/2019-27411001_files_2*7")
+    run_slide2patch("/Users/choppy/Downloads/test_slide/slides/2019-27411001.xml", "/Users/choppy/Downloads/test_slide/patches/2019-27411001_files")
